@@ -27,3 +27,5 @@ docs/phase1/_build.py
 
 postgres_data/
 redis_data/
+
+uvicorn.log
