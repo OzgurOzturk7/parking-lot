@@ -29,3 +29,5 @@ postgres_data/
 redis_data/
 
 uvicorn.log
+
+docs/phase1/diagram.pdf
