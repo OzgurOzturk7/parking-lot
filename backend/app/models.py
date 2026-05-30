@@ -64,3 +64,11 @@ class FlaggedPlate(Base):
     outstanding_balance: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     reason: Mapped[str] = mapped_column(String(255))
     flagged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_user"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(60), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

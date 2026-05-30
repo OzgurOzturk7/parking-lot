@@ -1,6 +1,16 @@
+import re
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+PLATE_PATTERN = re.compile(r"^[A-Z0-9]{2,10}$")
+
+
+def normalize_plate(value: str) -> str:
+    cleaned = re.sub(r"[\s-]", "", value).upper()
+    if not PLATE_PATTERN.match(cleaned):
+        raise ValueError("plate must be 2-10 letters or digits")
+    return cleaned
 
 
 class RatePlanOut(BaseModel):
@@ -11,7 +21,12 @@ class RatePlanOut(BaseModel):
 
 class EntryIn(BaseModel):
     license_plate: str = Field(min_length=2, max_length=20)
-    zone_id: int
+    zone_id: int = Field(gt=0)
+
+    @field_validator("license_plate")
+    @classmethod
+    def _plate(cls, v: str) -> str:
+        return normalize_plate(v)
 
 
 class EntrySpot(BaseModel):
@@ -30,6 +45,11 @@ class EntryOut(BaseModel):
 
 class ExitIn(BaseModel):
     license_plate: str = Field(min_length=2, max_length=20)
+
+    @field_validator("license_plate")
+    @classmethod
+    def _plate(cls, v: str) -> str:
+        return normalize_plate(v)
 
 
 class ExitOut(BaseModel):
@@ -88,8 +108,13 @@ class SessionOut(BaseModel):
 
 class FlaggedIn(BaseModel):
     license_plate: str = Field(min_length=2, max_length=20)
-    outstanding_balance: Decimal
-    reason: str
+    outstanding_balance: Decimal = Field(gt=0, le=100000)
+    reason: str = Field(min_length=3, max_length=255)
+
+    @field_validator("license_plate")
+    @classmethod
+    def _plate(cls, v: str) -> str:
+        return normalize_plate(v)
 
 
 class FlaggedOut(BaseModel):
@@ -98,3 +123,14 @@ class FlaggedOut(BaseModel):
     outstanding_balance: Decimal
     reason: str
     flagged_at: datetime
+
+
+class LoginIn(BaseModel):
+    username: str = Field(min_length=2, max_length=60)
+    password: str = Field(min_length=3, max_length=128)
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from ..database import get_db
@@ -7,12 +7,14 @@ from ..models import ParkingSession, Spot, FlaggedPlate
 from ..schemas import ExitIn, ExitOut, RatePlanOut
 from ..billing import calculate_fee
 from ..redis_client import decr_zone
+from ..limiter import limiter
 
 router = APIRouter(tags=["exit"])
 
 
 @router.post("/exit", response_model=ExitOut)
-def vehicle_exit(payload: ExitIn, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def vehicle_exit(request: Request, payload: ExitIn, db: Session = Depends(get_db)):
     flag = db.get(FlaggedPlate, payload.license_plate)
     if flag:
         raise HTTPException(403, detail={

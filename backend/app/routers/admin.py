@@ -6,8 +6,9 @@ from sqlalchemy import select
 from ..database import get_db
 from ..models import FlaggedPlate
 from ..schemas import FlaggedIn, FlaggedOut
+from ..auth import get_current_admin
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(get_current_admin)])
 
 
 @router.post("/flagged-plates", response_model=FlaggedOut, status_code=201)

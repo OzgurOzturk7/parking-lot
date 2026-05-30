@@ -1,10 +1,13 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from .database import engine
 from .redis_client import set_zone
-from .routers import entry, exit, lots, occupancy, sessions, admin
+from .limiter import limiter
+from .routers import entry, exit, lots, occupancy, sessions, admin, auth
 
 
 @asynccontextmanager
@@ -21,7 +24,18 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Parking Lot Management API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Parking Lot Management API", version="0.2.0", lifespan=lifespan)
+
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": "RATE_LIMITED", "message": f"too many requests, slow down ({exc.detail})"},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +45,7 @@ app.add_middleware(
 )
 
 prefix = "/api/v1"
+app.include_router(auth.router, prefix=prefix)
 app.include_router(entry.router, prefix=prefix)
 app.include_router(exit.router, prefix=prefix)
 app.include_router(lots.router, prefix=prefix)

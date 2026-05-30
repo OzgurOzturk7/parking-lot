@@ -57,6 +57,16 @@ CREATE TABLE flagged_plate (
     flagged_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE admin_user (
+    id            SERIAL PRIMARY KEY,
+    username      VARCHAR(60) UNIQUE NOT NULL,
+    password_hash VARCHAR(120) NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO admin_user (username, password_hash) VALUES
+    ('admin', '$2b$12$Qq0WSGYlukxvR.AKfNabPuur9mfz37yNsk5YDJbrrW82eOzbaaMIO');
+
 INSERT INTO rate_plan (id, name, billing_type, amount, grace_minutes) VALUES
     (1, 'Standard Hourly',  'per_hour',   4.00, 5),
     (2, 'EV Charging',      'per_minute', 0.15, 0),

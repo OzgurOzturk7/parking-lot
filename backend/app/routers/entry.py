@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
@@ -7,12 +7,14 @@ from ..database import get_db
 from ..models import Zone, Spot, ParkingSession
 from ..schemas import EntryIn, EntryOut, EntrySpot, RatePlanOut
 from ..redis_client import incr_zone
+from ..limiter import limiter
 
 router = APIRouter(tags=["entry"])
 
 
 @router.post("/entry", response_model=EntryOut, status_code=201)
-def entry(payload: EntryIn, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def entry(request: Request, payload: EntryIn, db: Session = Depends(get_db)):
     zone = db.get(Zone, payload.zone_id)
     if not zone:
         raise HTTPException(404, detail={"error": "ZONE_NOT_FOUND", "message": "zone does not exist"})
