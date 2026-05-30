@@ -6,7 +6,6 @@ import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/", label: "Overview" },
   { href: "/entry", label: "Entry" },
   { href: "/exit", label: "Exit" },
   { href: "/admin", label: "Admin" },
@@ -15,36 +14,34 @@ const items = [
 export function Nav() {
   const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-foreground text-background text-[11px] font-bold">P</div>
-            <span className="text-sm font-semibold tracking-tight">ParkingLot</span>
+    <header className="border-b border-border bg-background">
+      <div className="mx-auto flex h-12 max-w-5xl items-center justify-between gap-2 px-4 sm:px-6">
+        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-thin">
+          <Link
+            href="/"
+            className={cn(
+              "mr-2 sm:mr-3 shrink-0 text-sm font-semibold tracking-tight transition-colors",
+              pathname === "/" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            ParkingLot
           </Link>
-          <nav className="flex items-center gap-1">
-            {items.map((it) => {
-              const active = pathname === it.href;
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  className={cn(
-                    "relative rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                    active
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {it.label}
-                  {active && (
-                    <span className="absolute inset-x-2 -bottom-[15px] h-px bg-foreground" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+          {items.map((it) => {
+            const active = pathname === it.href || (it.href !== "/" && pathname?.startsWith(it.href));
+            return (
+              <Link
+                key={it.href}
+                href={it.href}
+                className={cn(
+                  "shrink-0 rounded px-2 py-1 text-sm transition-colors",
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {it.label}
+              </Link>
+            );
+          })}
+        </nav>
         <ThemeToggle />
       </div>
     </header>
