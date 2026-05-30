@@ -66,6 +66,8 @@ export type FlaggedPlate = {
   flagged_at: string;
 };
 
+export type TokenResponse = { access_token: string; token_type: string; expires_in: number };
+
 export class ApiError extends Error {
   status: number;
   code: string;
@@ -78,12 +80,24 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    cache: "no-store",
-  });
+const TOKEN_KEY = "parking_admin_token";
+
+export const auth = {
+  get: () => (typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY)),
+  set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
+  clear: () => localStorage.removeItem(TOKEN_KEY),
+};
+
+async function request<T>(path: string, init?: RequestInit, withAuth = false): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((init?.headers as Record<string, string>) ?? {}),
+  };
+  if (withAuth) {
+    const token = auth.get();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${BASE}${path}`, { ...init, headers, cache: "no-store" });
   if (!res.ok) {
     let code = "ERROR";
     let message = res.statusText;
@@ -91,12 +105,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     try {
       const body = await res.json();
       const d = body.detail ?? body;
-      if (typeof d === "object" && d !== null) {
+      if (Array.isArray(d) && d.length > 0) {
+        const first = d[0];
+        const field = Array.isArray(first.loc) ? first.loc[first.loc.length - 1] : "input";
+        message = `${field}: ${first.msg}`;
+        code = "VALIDATION_ERROR";
+        details = { errors: d };
+      } else if (typeof d === "object" && d !== null) {
         code = d.error ?? code;
         message = d.message ?? message;
         details = d;
+      } else if (typeof d === "string") {
+        message = d;
       }
     } catch {}
+    if (res.status === 401 && withAuth) auth.clear();
     throw new ApiError(res.status, code, message, details);
   }
   if (res.status === 204) return undefined as T;
@@ -112,10 +135,12 @@ export const api = {
   exit: (license_plate: string) =>
     request<ExitResponse>("/exit", { method: "POST", body: JSON.stringify({ license_plate }) }),
   session: (id: number) => request<SessionRecord>(`/sessions/${id}`),
+  login: (username: string, password: string) =>
+    request<TokenResponse>("/admin/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   flaggedList: (minBalance = 0) =>
-    request<FlaggedPlate[]>(`/admin/flagged-plates?min_balance=${minBalance}`),
+    request<FlaggedPlate[]>(`/admin/flagged-plates?min_balance=${minBalance}`, undefined, true),
   flaggedAdd: (data: { license_plate: string; outstanding_balance: number; reason: string }) =>
-    request<FlaggedPlate>("/admin/flagged-plates", { method: "POST", body: JSON.stringify(data) }),
+    request<FlaggedPlate>("/admin/flagged-plates", { method: "POST", body: JSON.stringify(data) }, true),
   flaggedDelete: (plate: string) =>
-    request<void>(`/admin/flagged-plates/${plate}`, { method: "DELETE" }),
+    request<void>(`/admin/flagged-plates/${plate}`, { method: "DELETE" }, true),
 };
