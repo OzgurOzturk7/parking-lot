@@ -6,6 +6,16 @@ flagged-plate registry that blocks drivers with unpaid sessions.
 
 Built for the SFWE477 backend course as a 4-phase project.
 
+## Live demo
+
+- Web app: https://parking-lot-frontend-rkow.onrender.com
+- API docs: https://parking-lot-yzg3.onrender.com/docs
+- Admin login: `admin` / `admin123`
+
+Both services run on Render's free tier and sleep after 15 minutes of
+inactivity. The first request after a cold start can take 30 to 60
+seconds. Subsequent calls are fast.
+
 ## Stack
 
 - FastAPI 0.115 (Python 3.11+)
@@ -139,9 +149,12 @@ curl -X POST http://localhost:8000/api/v1/exit \
   -d '{"license_plate":"34DBT999"}'
 ```
 
-## Phases
+## Deployment
 
-- [x] Phase 1 design (ERD, API contract, decisions in `docs/phase1/`)
-- [x] Phase 2 backend implementation + frontend
-- [x] Phase 3 JWT auth, input validation, rate limiting
-- [ ] Phase 4 Docker compose for the full stack, GitHub Actions CI, deploy
+- Backend runs as a Docker web service on Render
+- Frontend runs as a separate Docker web service on Render
+- PostgreSQL: Render managed Postgres (free tier)
+- Redis: Upstash (free tier, used as a cache for live occupancy
+  counters and as the storage backend for rate limiting)
+- CI: GitHub Actions runs on every push (backend smoke test,
+  frontend type-check and build, Docker image build for both)
